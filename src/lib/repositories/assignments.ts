@@ -1,5 +1,6 @@
 import { getDB } from "@/lib/db";
 import { uuid } from "@/lib/utils";
+import { markDirty } from "@/lib/sync/dirty";
 import type { Assignment } from "@/types/models";
 
 export async function listAssignmentsByStudent(studentId: string): Promise<Assignment[]> {
@@ -14,13 +15,16 @@ export async function createAssignment(input: Omit<Assignment, "id" | "createdAt
   const now = Date.now();
   const a: Assignment = { ...input, id: uuid(), createdAt: now, updatedAt: now };
   await getDB().assignments.add(a);
+  markDirty();
   return a;
 }
 
 export async function updateAssignment(id: string, patch: Partial<Omit<Assignment, "id" | "createdAt">>): Promise<void> {
   await getDB().assignments.update(id, { ...patch, updatedAt: Date.now() });
+  markDirty();
 }
 
 export async function deleteAssignment(id: string): Promise<void> {
   await getDB().assignments.delete(id);
+  markDirty();
 }

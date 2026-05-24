@@ -1,5 +1,6 @@
 import { getDB } from "@/lib/db";
 import { uuid } from "@/lib/utils";
+import { markDirty } from "@/lib/sync/dirty";
 import type { Student, StudentStatus } from "@/types/models";
 
 export async function listStudents(filter?: { status?: StudentStatus | "all"; query?: string }): Promise<Student[]> {
@@ -29,11 +30,13 @@ export async function createStudent(input: Omit<Student, "id" | "createdAt" | "u
   const now = Date.now();
   const student: Student = { ...input, id: uuid(), createdAt: now, updatedAt: now };
   await getDB().students.add(student);
+  markDirty();
   return student;
 }
 
 export async function updateStudent(id: string, patch: Partial<Omit<Student, "id" | "createdAt">>): Promise<void> {
   await getDB().students.update(id, { ...patch, updatedAt: Date.now() });
+  markDirty();
 }
 
 export async function deleteStudent(id: string): Promise<void> {
@@ -44,4 +47,5 @@ export async function deleteStudent(id: string): Promise<void> {
     await db.notifications.where("studentId").equals(id).delete();
     await db.students.delete(id);
   });
+  markDirty();
 }

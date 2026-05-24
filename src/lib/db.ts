@@ -19,7 +19,9 @@ export class ClassLogDB extends Dexie {
   settings!: Table<SettingsRecord, string>;
 
   constructor() {
-    super("classlog");
+    /* 환경별로 DB 분리: 테스트(dev) 데이터가 운영(prod)에 섞이지 않도록 */
+    const dbName = process.env.NODE_ENV === "production" ? "classlog-prod" : "classlog-dev";
+    super(dbName);
     /* v1: 초기 스키마. nextSessionDate 인덱스 보유 */
     this.version(1).stores({
       students: "id, name, status, createdAt, updatedAt, nextSessionDate",

@@ -1,18 +1,19 @@
 @echo off
-chcp 65001 >nul
-title ClassLog · 테스트 모드
+rem -- ClassLog dev/test launcher (NODE_ENV=development, uses classlog-dev DB) --
+rem Seeds test students/sessions on first run. Korean text avoided here because
+rem Windows cmd parses .bat in CP949 and breaks on UTF-8 multibyte chars.
+
+title ClassLog (test)
 cd /d "%~dp0"
 
 echo.
-echo  ClassLog · 테스트 모드 (개발 서버)
-echo  ----------------------------------
-echo  처음 실행하면 테스트 학생/수업 데이터가 자동으로 채워집니다.
+echo === ClassLog (test mode, seeded data) ===
 echo.
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo  [!] Node.js가 설치되어 있지 않습니다.
-  echo      https://nodejs.org 에서 LTS 버전을 먼저 설치해주세요.
+  echo [!] Node.js is not installed.
+  echo     Please install LTS from https://nodejs.org and run this again.
   echo.
   pause
   exit /b 1
@@ -20,29 +21,30 @@ if errorlevel 1 (
 
 where pnpm >nul 2>nul
 if errorlevel 1 (
-  echo  pnpm을 설치합니다 ^(최초 1회^)...
+  echo Installing pnpm ^(first time only^)...
   call npm install -g pnpm
   if errorlevel 1 (
-    echo  [!] pnpm 설치 실패.
+    echo [!] Failed to install pnpm.
     pause
     exit /b 1
   )
 )
 
 if not exist node_modules (
-  echo  패키지를 설치합니다. 1~2분 걸립니다...
+  echo Installing packages... ^(1-2 min^)
   call pnpm install --no-frozen-lockfile
   if errorlevel 1 (
-    echo  [!] 패키지 설치 실패.
+    echo [!] Package install failed.
     pause
     exit /b 1
   )
 )
 
 echo.
-echo  개발 서버를 시작합니다. 잠시 후 브라우저가 자동으로 열립니다.
-echo  종료하려면 이 창에서 Ctrl+C 를 누르세요.
+echo Starting dev server. Browser will open in a few seconds.
+echo On first visit, sample students / sessions are seeded automatically.
+echo Press Ctrl+C in this window to stop.
 echo.
 
-start "" "" "http://localhost:3000"
+start "" "http://localhost:3000"
 call pnpm dev

@@ -1,5 +1,6 @@
 import { getDB } from "@/lib/db";
 import { uuid } from "@/lib/utils";
+import { markDirty } from "@/lib/sync/dirty";
 import type { Session } from "@/types/models";
 
 export async function listSessionsByStudent(studentId: string): Promise<Session[]> {
@@ -20,11 +21,13 @@ export async function createSession(input: Omit<Session, "id" | "createdAt" | "u
   const now = Date.now();
   const session: Session = { ...input, id: uuid(), createdAt: now, updatedAt: now };
   await getDB().sessions.add(session);
+  markDirty();
   return session;
 }
 
 export async function updateSession(id: string, patch: Partial<Omit<Session, "id" | "createdAt">>): Promise<void> {
   await getDB().sessions.update(id, { ...patch, updatedAt: Date.now() });
+  markDirty();
 }
 
 export async function deleteSession(id: string): Promise<void> {
@@ -33,4 +36,5 @@ export async function deleteSession(id: string): Promise<void> {
     await db.assignments.where("sessionId").equals(id).delete();
     await db.sessions.delete(id);
   });
+  markDirty();
 }

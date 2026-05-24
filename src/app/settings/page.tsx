@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DriveCard } from "@/components/settings/drive-card";
+import { SyncCard } from "@/components/settings/sync-card";
 import { BackupCard } from "@/components/settings/backup-card";
 import {
   isNotificationApiSupported,
@@ -31,7 +31,7 @@ export default function SettingsPage() {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">동기화</h2>
-        <DriveCard />
+        <SyncCard />
         <BackupCard />
       </section>
 

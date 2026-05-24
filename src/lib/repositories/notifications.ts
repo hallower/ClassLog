@@ -1,5 +1,6 @@
 import { getDB } from "@/lib/db";
 import { uuid } from "@/lib/utils";
+import { markDirty } from "@/lib/sync/dirty";
 import type {
   MessageTemplate,
   NotificationChannel,
@@ -33,6 +34,7 @@ export async function createNotification(input: {
     createdAt: Date.now(),
   };
   await getDB().notifications.add(record);
+  markDirty();
   return record;
 }
 
@@ -41,10 +43,12 @@ export async function updateNotification(
   patch: Partial<Omit<NotificationRecord, "id" | "createdAt">>,
 ): Promise<void> {
   await getDB().notifications.update(id, patch);
+  markDirty();
 }
 
 export async function deleteNotification(id: string): Promise<void> {
   await getDB().notifications.delete(id);
+  markDirty();
 }
 
 export async function findDueScheduledNotifications(nowIso: string): Promise<NotificationRecord[]> {
@@ -87,19 +91,23 @@ export async function ensureDefaultTemplates(): Promise<void> {
       updatedAt: now,
     },
   ]);
+  markDirty();
 }
 
 export async function createTemplate(input: { name: string; body: string }): Promise<MessageTemplate> {
   const now = Date.now();
   const t: MessageTemplate = { id: uuid(), ...input, createdAt: now, updatedAt: now };
   await getDB().messageTemplates.add(t);
+  markDirty();
   return t;
 }
 
 export async function updateTemplate(id: string, patch: Partial<Pick<MessageTemplate, "name" | "body">>): Promise<void> {
   await getDB().messageTemplates.update(id, { ...patch, updatedAt: Date.now() });
+  markDirty();
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
   await getDB().messageTemplates.delete(id);
+  markDirty();
 }

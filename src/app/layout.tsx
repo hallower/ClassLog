@@ -4,6 +4,8 @@ import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { SeedBootstrap } from "@/components/dev/seed-bootstrap";
+import { LoginGate } from "@/components/auth/login-gate";
+import { AutoSync } from "@/components/sync/auto-sync";
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -47,9 +49,12 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${notoSansKr.variable} h-full antialiased`}>
       <body className="min-h-full bg-background text-foreground">
-        <AppShell>{children}</AppShell>
+        <LoginGate>
+          <AppShell>{children}</AppShell>
+          <AutoSync />
+          <SeedBootstrap />
+        </LoginGate>
         <Toaster richColors position="top-center" />
-        <SeedBootstrap />
       </body>
     </html>
   );
