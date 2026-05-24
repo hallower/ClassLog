@@ -4,8 +4,9 @@ export async function exportElementToPDF(
   element: HTMLElement,
   filename: string,
 ): Promise<void> {
+  /* html2canvas-pro: oklch/lab 등 모던 CSS 색상 함수 지원 (Tailwind v4 호환) */
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
+    import("html2canvas-pro"),
     import("jspdf"),
   ]);
 
@@ -56,7 +57,7 @@ export async function exportElementToPDF(
 }
 
 export async function captureElementAsImage(element: HTMLElement): Promise<string> {
-  const { default: html2canvas } = await import("html2canvas");
+  const { default: html2canvas } = await import("html2canvas-pro");
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,

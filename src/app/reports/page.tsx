@@ -10,6 +10,7 @@ import { getDB } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { deleteReport } from "@/lib/repositories/reports";
 import { StudentAvatar } from "@/components/students/student-avatar";
+import { ReportDownloadButton } from "@/components/reports/report-download-button";
 
 export default function ReportsPage() {
   const data = useLiveQuery(async () => {
@@ -77,22 +78,25 @@ export default function ReportsPage() {
                         <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{r.comment}</div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={async () => {
-                        if (!confirm("이 리포트 기록을 삭제할까요?")) return;
-                        try {
-                          await deleteReport(r.id);
-                          toast.success("삭제되었습니다.");
-                        } catch (err) {
-                          console.error(err);
-                          toast.error("삭제에 실패했습니다.");
-                        }
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <ReportDownloadButton report={r} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm("이 리포트 기록을 삭제할까요?")) return;
+                          try {
+                            await deleteReport(r.id);
+                            toast.success("삭제되었습니다.");
+                          } catch (err) {
+                            console.error(err);
+                            toast.error("삭제에 실패했습니다.");
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </li>
