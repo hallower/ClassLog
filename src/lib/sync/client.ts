@@ -79,11 +79,18 @@ export async function pushToServer(): Promise<{
   modifiedAt?: number;
 }> {
   const bundle = await exportBackup();
+  const body = JSON.stringify(bundle);
+  /**
+   * fetch keepalive는 본문 64 KiB 제한이 있어서 학생/수업 데이터 양이 조금만 늘어도
+   * 즉시 "Failed to fetch"로 실패한다. 작은 payload에만 keepalive를 켜고,
+   * 일반적인 경우엔 일반 fetch로 보낸다.
+   */
+  const useKeepalive = body.length < 60_000;
   const res = await fetch("/api/sync/push", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(bundle),
-    keepalive: true,
+    body,
+    keepalive: useKeepalive,
   });
   if (res.status === 401) throw new Error("unauthorized");
   if (res.status === 503) throw new Error("sync_disabled");
