@@ -28,6 +28,7 @@
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
     "html2canvas-pro": "^2.0.3",
+    "ioredis": "^5.10.1",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.469.0",
     "next": "16.2.6",

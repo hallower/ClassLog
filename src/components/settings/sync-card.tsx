@@ -99,7 +99,8 @@ export function SyncCard() {
               연결 시 다음 환경변수가 자동 주입됩니다:
             </p>
             <ul className="list-disc pl-5 text-xs">
-              <li><code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_URL</code> + <code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_TOKEN</code> (현재 권장)</li>
+              <li><code className="bg-muted px-1 rounded">REDIS_URL</code> (rediss:// 또는 redis://)</li>
+              <li>또는 <code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_URL</code> + <code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_TOKEN</code></li>
               <li>또는 <code className="bg-muted px-1 rounded">KV_REST_API_URL</code> + <code className="bg-muted px-1 rounded">KV_REST_API_TOKEN</code> (구 KV 방식)</li>
             </ul>
             <p className="text-xs">추가 후 반드시 <strong>Redeploy</strong>해야 적용됩니다.</p>
