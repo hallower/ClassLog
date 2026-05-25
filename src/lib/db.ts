@@ -6,6 +6,7 @@ import type {
   Report,
   MessageTemplate,
   NotificationRecord,
+  ScheduleOverride,
   SettingsRecord,
 } from "@/types/models";
 
@@ -16,6 +17,7 @@ export class ClassLogDB extends Dexie {
   reports!: Table<Report, string>;
   messageTemplates!: Table<MessageTemplate, string>;
   notifications!: Table<NotificationRecord, string>;
+  scheduleOverrides!: Table<ScheduleOverride, string>;
   settings!: Table<SettingsRecord, string>;
 
   constructor() {
@@ -37,6 +39,11 @@ export class ClassLogDB extends Dexie {
     /* v2: schedule 도입 + nextSessionDate 인덱스 제거 */
     this.version(2).stores({
       students: "id, name, status, createdAt, updatedAt",
+    });
+    /* v3: 1회성 일정 변경 테이블 */
+    this.version(3).stores({
+      scheduleOverrides:
+        "id, studentId, originalDate, newDate, [studentId+originalDate+originalTime]",
     });
   }
 }

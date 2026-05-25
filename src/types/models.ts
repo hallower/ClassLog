@@ -6,6 +6,26 @@ export interface ScheduleSlot {
   time: string;            /* "HH:MM" 24시간제 */
 }
 
+/**
+ * 학생의 정기 일정 중 특정 1회만 임시로 옮기거나 취소한 기록.
+ * 정기 일정(Student.schedule)은 건드리지 않고 이 테이블만 변경됨.
+ *
+ * (studentId, originalDate, originalTime) 조합이 고유 식별자.
+ *   newDate=null  → 이 수업 취소(휴강)
+ *   newDate=날짜  → 새 날짜·시간으로 이동
+ */
+export interface ScheduleOverride {
+  id: string;
+  studentId: string;
+  originalDate: string;       /* ISO yyyy-mm-dd */
+  originalTime: string;       /* "HH:MM" */
+  newDate: string | null;
+  newTime?: string;           /* "HH:MM" */
+  note?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Student {
   id: string;
   name: string;

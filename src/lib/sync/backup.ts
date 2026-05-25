@@ -4,7 +4,8 @@ import { getDB } from "@/lib/db";
 
 export interface BackupBundle {
   app: "ClassLog";
-  version: 1;
+  /** 구 버전은 1, scheduleOverrides 포함은 2. import 시 둘 다 허용. */
+  version: 1 | 2;
   exportedAt: string;
   data: {
     students: unknown[];
@@ -13,27 +14,46 @@ export interface BackupBundle {
     reports: unknown[];
     messageTemplates: unknown[];
     notifications: unknown[];
+    scheduleOverrides?: unknown[];
     settings: unknown[];
   };
 }
 
 export async function exportBackup(): Promise<BackupBundle> {
   const db = getDB();
-  const [students, sessions, assignments, reports, messageTemplates, notifications, settings] =
-    await Promise.all([
-      db.students.toArray(),
-      db.sessions.toArray(),
-      db.assignments.toArray(),
-      db.reports.toArray(),
-      db.messageTemplates.toArray(),
-      db.notifications.toArray(),
-      db.settings.toArray(),
-    ]);
+  const [
+    students,
+    sessions,
+    assignments,
+    reports,
+    messageTemplates,
+    notifications,
+    scheduleOverrides,
+    settings,
+  ] = await Promise.all([
+    db.students.toArray(),
+    db.sessions.toArray(),
+    db.assignments.toArray(),
+    db.reports.toArray(),
+    db.messageTemplates.toArray(),
+    db.notifications.toArray(),
+    db.scheduleOverrides.toArray(),
+    db.settings.toArray(),
+  ]);
   return {
     app: "ClassLog",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    data: { students, sessions, assignments, reports, messageTemplates, notifications, settings },
+    data: {
+      students,
+      sessions,
+      assignments,
+      reports,
+      messageTemplates,
+      notifications,
+      scheduleOverrides,
+      settings,
+    },
   };
 }
 
@@ -67,6 +87,7 @@ export async function importBackup(bundle: BackupBundle, mode: "replace" | "merg
       db.reports,
       db.messageTemplates,
       db.notifications,
+      db.scheduleOverrides,
       db.settings,
     ],
     async () => {
@@ -77,19 +98,22 @@ export async function importBackup(bundle: BackupBundle, mode: "replace" | "merg
         await db.reports.clear();
         await db.messageTemplates.clear();
         await db.notifications.clear();
+        await db.scheduleOverrides.clear();
         await db.settings.clear();
       }
-      const tables: Array<[keyof BackupBundle["data"], () => Promise<unknown>]> = [
-        ["students", () => db.students.bulkPut(bundle.data.students as never[])],
-        ["sessions", () => db.sessions.bulkPut(bundle.data.sessions as never[])],
-        ["assignments", () => db.assignments.bulkPut(bundle.data.assignments as never[])],
-        ["reports", () => db.reports.bulkPut(bundle.data.reports as never[])],
-        ["messageTemplates", () => db.messageTemplates.bulkPut(bundle.data.messageTemplates as never[])],
-        ["notifications", () => db.notifications.bulkPut(bundle.data.notifications as never[])],
-        ["settings", () => db.settings.bulkPut(bundle.data.settings as never[])],
+      const tables: Array<[string, unknown[] | undefined, () => Promise<unknown>]> = [
+        ["students", bundle.data.students, () => db.students.bulkPut(bundle.data.students as never[])],
+        ["sessions", bundle.data.sessions, () => db.sessions.bulkPut(bundle.data.sessions as never[])],
+        ["assignments", bundle.data.assignments, () => db.assignments.bulkPut(bundle.data.assignments as never[])],
+        ["reports", bundle.data.reports, () => db.reports.bulkPut(bundle.data.reports as never[])],
+        ["messageTemplates", bundle.data.messageTemplates, () => db.messageTemplates.bulkPut(bundle.data.messageTemplates as never[])],
+        ["notifications", bundle.data.notifications, () => db.notifications.bulkPut(bundle.data.notifications as never[])],
+        ["scheduleOverrides", bundle.data.scheduleOverrides, () =>
+          db.scheduleOverrides.bulkPut((bundle.data.scheduleOverrides ?? []) as never[])],
+        ["settings", bundle.data.settings, () => db.settings.bulkPut(bundle.data.settings as never[])],
       ];
-      for (const [name, fn] of tables) {
-        const count = bundle.data[name]?.length ?? 0;
+      for (const [name, arr, fn] of tables) {
+        const count = arr?.length ?? 0;
         imported[name] = count;
         if (count > 0) await fn();
       }
