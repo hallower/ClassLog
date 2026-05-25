@@ -16,7 +16,9 @@ import type { Session } from "@/types/models";
 
 export function ScoreLineChart({ sessions }: { sessions: Session[] }) {
   const data = sessions
-    .filter((s) => s.mockExamScore !== null && s.mockExamScore !== undefined)
+    .filter(
+      (s) => s.mockExamScore !== null && s.mockExamScore !== undefined && s.mockExamScore > 0,
+    )
     .sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1))
     .map((s) => ({
       date: s.sessionDate,

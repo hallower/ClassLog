@@ -32,8 +32,11 @@ export function summarizeSessions(sessions: Session[]): ReportStats {
   const completions = sessions
     .map((s) => s.previousCompletionRate)
     .filter((v): v is number => v !== null && v !== undefined);
+  /* 0점은 "미응시/미입력"으로 간주, 통계에서 제외 */
   const scores = sessions
-    .filter((s) => s.mockExamScore !== null && s.mockExamScore !== undefined)
+    .filter(
+      (s) => s.mockExamScore !== null && s.mockExamScore !== undefined && s.mockExamScore > 0,
+    )
     .sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1));
 
   const buckets = { low: 0, mid: 0, high: 0 };

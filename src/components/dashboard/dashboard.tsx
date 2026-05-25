@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, Users, FileText, Bell, CalendarDays } from "lucide-react";
+import { Plus, Users, FileText, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import { CompletionBadge } from "@/components/sessions/completion-badge";
+import { ScheduleCalendar } from "@/components/dashboard/schedule-calendar";
 import { getDB } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { studentsScheduledOn } from "@/lib/schedule";
-import type { Student, Session, ScheduleSlot } from "@/types/models";
+import type { Student, Session } from "@/types/models";
 
 export function Dashboard() {
   const data = useLiveQuery(async () => {
@@ -64,27 +65,15 @@ export function Dashboard() {
         <StatCard
           label="오늘 수업"
           value={data?.todays.length ?? "—"}
-          href="#today"
           highlight={!!data && data.todays.length > 0}
         />
-        <StatCard
-          label="내일 수업"
-          value={data?.tomorrows.length ?? "—"}
-          href="#tomorrow"
-        />
+        <StatCard label="내일 수업" value={data?.tomorrows.length ?? "—"} />
         <StatCard label="예약 알림" value={data?.pendingNotifs ?? "—"} href="/notifications" />
       </section>
 
-      {/* 오늘 수업 */}
-      <section id="today" className="space-y-3">
-        <SectionHeader title="오늘 수업" icon={<CalendarDays className="size-4" />} count={data?.todays.length} />
-        <QuickViewList entries={data?.todays} emptyText="오늘 예정된 수업이 없습니다." />
-      </section>
-
-      {/* 내일 수업 */}
-      <section id="tomorrow" className="space-y-3">
-        <SectionHeader title="내일 수업" icon={<CalendarDays className="size-4" />} count={data?.tomorrows.length} />
-        <QuickViewList entries={data?.tomorrows} emptyText="내일 예정된 수업이 없습니다." />
+      {/* 수업 일정 캘린더 */}
+      <section className="space-y-3">
+        <ScheduleCalendar students={data?.students ?? []} />
       </section>
 
       {/* 최근 수업 기록 */}
@@ -155,60 +144,6 @@ function SectionHeader({
   );
 }
 
-interface ScheduledEntry {
-  student: Student;
-  slots: ScheduleSlot[];
-}
-
-function QuickViewList({
-  entries,
-  emptyText,
-}: {
-  entries?: ScheduledEntry[];
-  emptyText: string;
-}) {
-  if (entries === undefined) {
-    return (
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
-  if (entries.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center text-sm text-muted-foreground">
-          {emptyText}
-        </CardContent>
-      </Card>
-    );
-  }
-  return (
-    <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {entries.map(({ student, slots }) => (
-        <li key={student.id}>
-          <Link href={`/students/${student.id}`}>
-            <Card className="hover:bg-accent/40 transition-colors">
-              <CardContent className="p-4 flex items-center gap-3">
-                <StudentAvatar name={student.name} image={student.profileImage} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold truncate">{student.name}</div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {student.school} · {student.grade}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {slots.map((s) => s.time).join(", ")}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function RecentSessions({
   sessions,

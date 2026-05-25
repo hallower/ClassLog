@@ -46,7 +46,9 @@ export const ReportPreview = forwardRef<HTMLDivElement, Props>(function ReportPr
   ref,
 ) {
   const scoreData = sessions
-    .filter((s) => s.mockExamScore !== null && s.mockExamScore !== undefined)
+    .filter(
+      (s) => s.mockExamScore !== null && s.mockExamScore !== undefined && s.mockExamScore > 0,
+    )
     .sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1))
     .map((s) => ({
       label: formatDate(s.sessionDate),
