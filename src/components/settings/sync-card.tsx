@@ -90,11 +90,20 @@ export function SyncCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {!syncEnabled ? (
-          <p className="text-sm text-muted-foreground">
-            현재 환경은 로컬 전용으로 동작 중입니다 (Vercel Redis 미설정). 데이터는 이 기기 안에만 저장됩니다.
-            여러 기기에서 동기화하려면 배포 환경에 <code className="text-xs bg-muted px-1 rounded">KV_REST_API_URL</code>,
-            <code className="text-xs bg-muted px-1 rounded">KV_REST_API_TOKEN</code> 환경변수를 설정해주세요.
-          </p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>
+              현재 환경은 로컬 전용으로 동작 중입니다 (Vercel Redis 미설정). 데이터는 이 기기 안에만 저장됩니다.
+            </p>
+            <p>
+              여러 기기에서 동기화하려면 Vercel 프로젝트의 Storage 탭에서 Upstash Redis를 추가하세요.
+              연결 시 다음 환경변수가 자동 주입됩니다:
+            </p>
+            <ul className="list-disc pl-5 text-xs">
+              <li><code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_URL</code> + <code className="bg-muted px-1 rounded">UPSTASH_REDIS_REST_TOKEN</code> (현재 권장)</li>
+              <li>또는 <code className="bg-muted px-1 rounded">KV_REST_API_URL</code> + <code className="bg-muted px-1 rounded">KV_REST_API_TOKEN</code> (구 KV 방식)</li>
+            </ul>
+            <p className="text-xs">추가 후 반드시 <strong>Redeploy</strong>해야 적용됩니다.</p>
+          </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">

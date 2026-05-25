@@ -11,20 +11,39 @@ export function authPassword(): string | null {
   return v && v.length > 0 ? v : null;
 }
 
+/**
+ * Upstash/Vercel은 통합 방식과 시기에 따라 환경변수 이름이 다릅니다.
+ * - Vercel Marketplace (현재) → UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
+ * - 구 Vercel KV / @vercel/kv → KV_REST_API_URL / KV_REST_API_TOKEN
+ * 둘 다 인식하도록 처리.
+ */
+function resolveRedisConfig(): { url: string; token: string } | null {
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.KV_REST_API_URL ||
+    "";
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.KV_REST_API_TOKEN ||
+    "";
+  if (!url.trim() || !token.trim()) return null;
+  return { url, token };
+}
+
 export function isRedisConfigured(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  return resolveRedisConfig() !== null;
 }
 
 let _redis: Redis | null = null;
 export function getRedis(): Redis {
-  if (!isRedisConfigured()) {
-    throw new Error("Redis 환경변수(KV_REST_API_URL/KV_REST_API_TOKEN)가 설정되지 않았습니다.");
+  const cfg = resolveRedisConfig();
+  if (!cfg) {
+    throw new Error(
+      "Redis 환경변수(UPSTASH_REDIS_REST_URL/TOKEN 또는 KV_REST_API_URL/TOKEN)가 설정되지 않았습니다.",
+    );
   }
   if (!_redis) {
-    _redis = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
-    });
+    _redis = new Redis({ url: cfg.url, token: cfg.token });
   }
   return _redis;
 }
