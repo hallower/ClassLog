@@ -11,6 +11,10 @@ import { DAY_LABELS, sortSlots } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 import { getDB } from "@/lib/db";
 import { OverrideDialog, type OverrideDialogState } from "@/components/dashboard/override-dialog";
+import {
+  DaySchedulePopup,
+  type DayPopupOccurrence,
+} from "@/components/dashboard/day-schedule-popup";
 import type { ScheduleOverride, ScheduleSlot, Student } from "@/types/models";
 
 type View = "month" | "week" | "day";
@@ -137,6 +141,7 @@ export function ScheduleCalendar({ students }: { students: Student[] }) {
   const [view, setView] = useState<View>("month");
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
   const [dialog, setDialog] = useState<OverrideDialogState | null>(null);
+  const [popupDate, setPopupDate] = useState<Date | null>(null);
 
   const range = useMemo(() => computeRange(view, anchor), [view, anchor]);
 
@@ -194,7 +199,22 @@ export function ScheduleCalendar({ students }: { students: Student[] }) {
   const handlers: CalendarHandlers = {
     onChipClick: (occ) => openOverrideDialog(occ),
     onDropOnDay: (occ, newDate) => openOverrideDialog(occ, isoDate(newDate)),
+    onDayClick: (date) => setPopupDate(date),
   };
+
+  const popupEvents: DayPopupOccurrence[] = useMemo(() => {
+    if (!popupDate) return [];
+    const key = isoDate(popupDate);
+    return events
+      .filter((e) => isoDate(e.date) === key)
+      .map((e) => ({
+        student: e.student,
+        time: e.time,
+        override: e.override,
+        originalDate: e.originalDate,
+        originalTime: e.originalTime,
+      }));
+  }, [popupDate, events]);
 
   return (
     <Card>
@@ -234,6 +254,24 @@ export function ScheduleCalendar({ students }: { students: Student[] }) {
       </CardContent>
 
       <OverrideDialog state={dialog} onClose={() => setDialog(null)} />
+      <DaySchedulePopup
+        date={popupDate}
+        events={popupEvents}
+        open={!!popupDate}
+        onClose={() => setPopupDate(null)}
+        onEditOccurrence={(occ) => {
+          const target = events.find(
+            (e) =>
+              e.student.id === occ.student.id &&
+              e.originalDate === occ.originalDate &&
+              e.originalTime === occ.originalTime,
+          );
+          if (target) {
+            setPopupDate(null);
+            openOverrideDialog(target);
+          }
+        }}
+      />
     </Card>
   );
 }
@@ -257,6 +295,7 @@ function computeRange(view: View, anchor: Date): { from: Date; to: Date } {
 interface CalendarHandlers {
   onChipClick: (occ: Occurrence) => void;
   onDropOnDay: (occ: Occurrence, newDate: Date) => void;
+  onDayClick: (date: Date) => void;
 }
 
 const DRAG_MIME = "application/x-classlog-occurrence";
@@ -363,11 +402,20 @@ function DayCell({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        "bg-background min-h-[88px] md:min-h-[100px] p-1.5 flex flex-col gap-1 transition-colors",
+        "bg-background min-h-[88px] md:min-h-[100px] p-1.5 flex flex-col gap-1 transition-colors cursor-pointer",
         outside && "bg-muted/40",
         hover && "bg-primary/5",
       )}
+      onClick={() => handlers.onDayClick(date)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handlers.onDayClick(date);
+        }
+      }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(DRAG_MIME)) {
           e.preventDefault();
@@ -428,7 +476,10 @@ function EventChip({
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData(DRAG_MIME, eventToPayload(event));
       }}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className={cn(
         "block w-full text-left truncate rounded px-1.5 py-0.5 text-[10px] leading-tight transition-colors cursor-grab active:cursor-grabbing",
         moved
@@ -500,11 +551,20 @@ function WeekDayCard({
   const [hover, setHover] = useState(false);
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        "rounded-md border bg-background p-2.5 min-h-[110px] transition-colors",
+        "rounded-md border bg-background p-2.5 min-h-[110px] transition-colors cursor-pointer",
         isToday(date) && "border-primary",
         hover && "bg-primary/5",
       )}
+      onClick={() => handlers.onDayClick(date)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handlers.onDayClick(date);
+        }
+      }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(DRAG_MIME)) {
           e.preventDefault();

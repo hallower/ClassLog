@@ -42,12 +42,21 @@ export interface Student {
   updatedAt: number;
 }
 
+export interface MockExamEntry {
+  scope: string;
+  score: number | null;
+}
+
 export interface Session {
   id: string;
   studentId: string;
   sessionDate: string;       /* ISO yyyy-mm-dd */
   vocabulary?: string;
+  /** 한 수업에서 여러 범위 모의고사를 기록 가능. */
+  mockExams?: MockExamEntry[];
+  /** @deprecated 구 버전 단일 필드. 읽기 호환용으로만 유지. 신규 쓰기는 mockExams 사용. */
   mockExamScope?: string;
+  /** @deprecated */
   mockExamScore?: number | null;
   pastQuestionType?: string;
   notes?: string;
@@ -56,6 +65,23 @@ export interface Session {
   previousCompletionRate?: number | null;
   createdAt: number;
   updatedAt: number;
+}
+
+/** 신·구 필드를 합쳐 단일 배열로 정규화. */
+export function getMockExamEntries(s: Session): MockExamEntry[] {
+  if (s.mockExams && s.mockExams.length > 0) return s.mockExams;
+  if (
+    (s.mockExamScope && s.mockExamScope.trim().length > 0) ||
+    (s.mockExamScore !== null && s.mockExamScore !== undefined)
+  ) {
+    return [
+      {
+        scope: s.mockExamScope ?? "",
+        score: s.mockExamScore ?? null,
+      },
+    ];
+  }
+  return [];
 }
 
 export type AssignmentType = "vocab" | "mock" | "past" | "etc";

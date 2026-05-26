@@ -17,7 +17,7 @@ import { getDB } from "@/lib/db";
 import { formatDate, cn } from "@/lib/utils";
 import { CompletionBadge, completionRowClass } from "@/components/sessions/completion-badge";
 import { SessionFormDialog } from "@/components/sessions/session-form-dialog";
-import type { Session } from "@/types/models";
+import { getMockExamEntries, type Session } from "@/types/models";
 
 export function SessionTable({ studentId }: { studentId: string }) {
   const [open, setOpen] = useState(false);
@@ -97,8 +97,7 @@ export function SessionTable({ studentId }: { studentId: string }) {
                   <TableHead className="w-28">수업일</TableHead>
                   <TableHead className="w-24">이전 이행률</TableHead>
                   <TableHead>어휘</TableHead>
-                  <TableHead className="w-44">모의고사 범위</TableHead>
-                  <TableHead className="w-20">점수</TableHead>
+                  <TableHead className="w-56">모의고사</TableHead>
                   <TableHead className="w-32">기출 유형</TableHead>
                   <TableHead>비고</TableHead>
                   <TableHead className="w-12 text-right"></TableHead>
@@ -119,9 +118,23 @@ export function SessionTable({ studentId }: { studentId: string }) {
                       <CompletionBadge rate={s.previousCompletionRate} size="sm" />
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{s.vocabulary || "—"}</TableCell>
-                    <TableCell className="text-xs">{s.mockExamScope || "—"}</TableCell>
-                    <TableCell>
-                      {s.mockExamScore !== null && s.mockExamScore !== undefined ? s.mockExamScore : "—"}
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const exams = getMockExamEntries(s);
+                        if (exams.length === 0) return "—";
+                        return (
+                          <div className="space-y-0.5">
+                            {exams.map((e, i) => (
+                              <div key={i} className="flex justify-between gap-2">
+                                <span className="truncate">{e.scope || "범위 미입력"}</span>
+                                <span className="tabular-nums shrink-0">
+                                  {e.score !== null && e.score !== undefined ? `${e.score}점` : "—"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs">{s.pastQuestionType || "—"}</TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">

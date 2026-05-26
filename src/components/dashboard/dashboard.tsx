@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, Users, FileText, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import { CompletionBadge } from "@/components/sessions/completion-badge";
 import { ScheduleCalendar } from "@/components/dashboard/schedule-calendar";
+import { DaySchedulePopup } from "@/components/dashboard/day-schedule-popup";
 import { getDB } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
-import { studentsScheduledOn } from "@/lib/schedule";
+import { studentsScheduledOn, sortSlots } from "@/lib/schedule";
 import type { Student, Session } from "@/types/models";
 
 export function Dashboard() {
+  const [todayPopup, setTodayPopup] = useState(false);
+
   const data = useLiveQuery(async () => {
     const db = getDB();
     const [students, recentSessions, scheduledNotifs] = await Promise.all([
@@ -66,10 +70,27 @@ export function Dashboard() {
           label="오늘 수업"
           value={data?.todays.length ?? "—"}
           highlight={!!data && data.todays.length > 0}
+          onClick={() => setTodayPopup(true)}
         />
         <StatCard label="내일 수업" value={data?.tomorrows.length ?? "—"} />
         <StatCard label="예약 알림" value={data?.pendingNotifs ?? "—"} href="/notifications" />
       </section>
+
+      <DaySchedulePopup
+        date={todayPopup ? new Date() : null}
+        events={
+          data?.todays.flatMap(({ student, slots }) =>
+            sortSlots(slots).map((slot) => ({
+              student,
+              time: slot.time,
+              originalDate: toISODate(new Date()),
+              originalTime: slot.time,
+            })),
+          ) ?? []
+        }
+        open={todayPopup}
+        onClose={() => setTodayPopup(false)}
+      />
 
       {/* 수업 일정 캘린더 */}
       <section className="space-y-3">
@@ -103,14 +124,18 @@ function StatCard({
   value,
   href,
   highlight,
+  onClick,
 }: {
   label: string;
   value: number | string;
   href?: string;
   highlight?: boolean;
+  onClick?: () => void;
 }) {
   const card = (
-    <Card className={highlight ? "ring-2 ring-primary/40" : ""}>
+    <Card
+      className={`${highlight ? "ring-2 ring-primary/40 " : ""}${onClick || href ? "hover:bg-accent/40 transition-colors cursor-pointer" : ""}`}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
@@ -119,7 +144,18 @@ function StatCard({
       </CardContent>
     </Card>
   );
-  return href ? <Link href={href}>{card}</Link> : card;
+  if (href) return <Link href={href}>{card}</Link>;
+  if (onClick)
+    return (
+      <button type="button" onClick={onClick} className="text-left w-full">
+        {card}
+      </button>
+    );
+  return card;
+}
+
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function SectionHeader({

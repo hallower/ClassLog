@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,16 +23,11 @@ import {
   updateSession,
 } from "@/lib/repositories/sessions";
 import { todayISO } from "@/lib/utils";
-import type { Session } from "@/types/models";
+import { getMockExamEntries, type MockExamEntry, type Session } from "@/types/models";
 
 const schema = z.object({
   sessionDate: z.string().min(1, "수업일을 선택하세요."),
   vocabulary: z.string().optional(),
-  mockExamScope: z.string().optional(),
-  mockExamScore: z
-    .union([z.string().length(0), z.coerce.number().min(0).max(200)])
-    .optional()
-    .transform((v) => (v === "" || v === undefined ? null : Number(v))),
   pastQuestionType: z.string().optional(),
   notes: z.string().optional(),
   nextAssignment: z.string().optional(),
@@ -43,6 +39,32 @@ const schema = z.object({
 
 type FormValues = z.input<typeof schema>;
 type ParsedValues = z.output<typeof schema>;
+
+interface ExamRow {
+  scope: string;
+  scoreText: string;
+}
+
+function entriesToRows(entries: MockExamEntry[]): ExamRow[] {
+  return entries.map((e) => ({
+    scope: e.scope,
+    scoreText: e.score === null || e.score === undefined ? "" : String(e.score),
+  }));
+}
+
+function rowsToEntries(rows: ExamRow[]): MockExamEntry[] {
+  const result: MockExamEntry[] = [];
+  for (const r of rows) {
+    const scope = r.scope.trim();
+    const scoreNum = r.scoreText.trim() === "" ? null : Number(r.scoreText);
+    if (!scope && (scoreNum === null || Number.isNaN(scoreNum))) continue;
+    result.push({
+      scope,
+      score: scoreNum === null || Number.isNaN(scoreNum) ? null : scoreNum,
+    });
+  }
+  return result;
+}
 
 export function SessionFormDialog({
   open,
@@ -59,17 +81,13 @@ export function SessionFormDialog({
 }) {
   const editing = !!session;
   const [submitting, setSubmitting] = useState(false);
+  const [examRows, setExamRows] = useState<ExamRow[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       sessionDate: session?.sessionDate ?? todayISO(),
       vocabulary: session?.vocabulary ?? "",
-      mockExamScope: session?.mockExamScope ?? "",
-      mockExamScore:
-        session?.mockExamScore === null || session?.mockExamScore === undefined
-          ? ""
-          : String(session.mockExamScore),
       pastQuestionType: session?.pastQuestionType ?? "",
       notes: session?.notes ?? "",
       nextAssignment: session?.nextAssignment ?? "",
@@ -86,11 +104,6 @@ export function SessionFormDialog({
       form.reset({
         sessionDate: session?.sessionDate ?? todayISO(),
         vocabulary: session?.vocabulary ?? "",
-        mockExamScope: session?.mockExamScope ?? "",
-        mockExamScore:
-          session?.mockExamScore === null || session?.mockExamScore === undefined
-            ? ""
-            : String(session.mockExamScore),
         pastQuestionType: session?.pastQuestionType ?? "",
         notes: session?.notes ?? "",
         nextAssignment: session?.nextAssignment ?? "",
@@ -100,37 +113,55 @@ export function SessionFormDialog({
             ? ""
             : String(session.previousCompletionRate),
       });
+      const entries = session ? getMockExamEntries(session) : [];
+      setExamRows(entries.length > 0 ? entriesToRows(entries) : []);
     }
   }, [open, session, form]);
 
+  const addExamRow = () => {
+    setExamRows((prev) => [...prev, { scope: "", scoreText: "" }]);
+  };
+
+  const updateExamRow = (idx: number, patch: Partial<ExamRow>) => {
+    setExamRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const removeExamRow = (idx: number) => {
+    setExamRows((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const submit = async (raw: FormValues) => {
     const parsed = schema.parse(raw) as ParsedValues;
+    /* 점수 범위 검증 */
+    for (const r of examRows) {
+      const s = r.scoreText.trim();
+      if (s === "") continue;
+      const n = Number(s);
+      if (Number.isNaN(n) || n < 0 || n > 200) {
+        toast.error("모의고사 점수는 0~200 사이로 입력해주세요.");
+        return;
+      }
+    }
+    const mockExams = rowsToEntries(examRows);
     setSubmitting(true);
     try {
+      const basePayload = {
+        sessionDate: parsed.sessionDate,
+        vocabulary: parsed.vocabulary || undefined,
+        mockExams: mockExams.length > 0 ? mockExams : undefined,
+        /* 구 필드는 더 이상 쓰지 않음 (read fallback만 유지). 수정 시 비워서 일관성 확보. */
+        mockExamScope: undefined,
+        mockExamScore: null,
+        pastQuestionType: parsed.pastQuestionType || undefined,
+        notes: parsed.notes || undefined,
+        nextAssignment: parsed.nextAssignment || undefined,
+        previousCompletionRate: parsed.previousCompletionRate,
+      };
       if (editing) {
-        await updateSession(session!.id, {
-          sessionDate: parsed.sessionDate,
-          vocabulary: parsed.vocabulary || undefined,
-          mockExamScope: parsed.mockExamScope || undefined,
-          mockExamScore: parsed.mockExamScore,
-          pastQuestionType: parsed.pastQuestionType || undefined,
-          notes: parsed.notes || undefined,
-          nextAssignment: parsed.nextAssignment || undefined,
-          previousCompletionRate: parsed.previousCompletionRate,
-        });
+        await updateSession(session!.id, basePayload);
         toast.success("수업 기록이 수정되었습니다.");
       } else {
-        await createSession({
-          studentId,
-          sessionDate: parsed.sessionDate,
-          vocabulary: parsed.vocabulary || undefined,
-          mockExamScope: parsed.mockExamScope || undefined,
-          mockExamScore: parsed.mockExamScore,
-          pastQuestionType: parsed.pastQuestionType || undefined,
-          notes: parsed.notes || undefined,
-          nextAssignment: parsed.nextAssignment || undefined,
-          previousCompletionRate: parsed.previousCompletionRate,
-        });
+        await createSession({ studentId, ...basePayload });
         toast.success("수업 기록이 추가되었습니다.");
       }
       onSaved?.();
@@ -193,19 +224,68 @@ export function SessionFormDialog({
             <FormField label="어휘 진도" className="md:col-span-2">
               <Input placeholder="예: Day 12 (1500–1600)" {...form.register("vocabulary")} />
             </FormField>
-            <FormField label="모의고사 범위">
-              <Input placeholder="예: 2024 6월 모의고사" {...form.register("mockExamScope")} />
-            </FormField>
-            <FormField label="모의고사 점수">
-              <Input
-                type="number"
-                min={0}
-                max={200}
-                inputMode="numeric"
-                placeholder="0–200"
-                {...form.register("mockExamScore")}
-              />
-            </FormField>
+          </div>
+
+          {/* 모의고사 — 여러 범위/점수 입력 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">모의고사</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                onClick={addExamRow}
+              >
+                <Plus className="size-3.5" /> 추가
+              </Button>
+            </div>
+            {examRows.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  className="underline underline-offset-2 hover:text-foreground"
+                  onClick={addExamRow}
+                >
+                  + 첫 모의고사 범위 추가
+                </button>
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {examRows.map((row, idx) => (
+                  <li key={idx} className="flex gap-2 items-start">
+                    <Input
+                      className="flex-1"
+                      placeholder="범위 (예: 2024 6월 모의고사)"
+                      value={row.scope}
+                      onChange={(e) => updateExamRow(idx, { scope: e.target.value })}
+                    />
+                    <Input
+                      className="w-24"
+                      type="number"
+                      min={0}
+                      max={200}
+                      inputMode="numeric"
+                      placeholder="점수"
+                      value={row.scoreText}
+                      onChange={(e) => updateExamRow(idx, { scoreText: e.target.value })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeExamRow(idx)}
+                      aria-label="삭제"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
             <FormField label="기출 유형" className="md:col-span-2">
               <Input placeholder="예: 빈칸, 어법, 주제 등" {...form.register("pastQuestionType")} />
             </FormField>

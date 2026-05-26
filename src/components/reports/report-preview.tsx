@@ -16,7 +16,7 @@ import {
   LabelList,
 } from "recharts";
 import { formatDate, completionBucket } from "@/lib/utils";
-import type { Student, Session } from "@/types/models";
+import { getMockExamEntries, type Student, type Session } from "@/types/models";
 import type { ReportStats } from "@/lib/reports";
 
 interface Props {
@@ -46,16 +46,18 @@ export const ReportPreview = forwardRef<HTMLDivElement, Props>(function ReportPr
   ref,
 ) {
   const scoreData = sessions
-    .filter(
-      (s) => s.mockExamScore !== null && s.mockExamScore !== undefined && s.mockExamScore > 0,
+    .flatMap((s) =>
+      getMockExamEntries(s)
+        .filter((e) => e.score !== null && e.score !== undefined && e.score > 0)
+        .map((e) => ({
+          date: s.sessionDate,
+          label: formatDate(s.sessionDate),
+          shortLabel: shortDate(s.sessionDate),
+          scope: e.scope,
+          score: e.score!,
+        })),
     )
-    .sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1))
-    .map((s) => ({
-      label: formatDate(s.sessionDate),
-      shortLabel: shortDate(s.sessionDate),
-      scope: s.mockExamScope ?? "",
-      score: s.mockExamScore!,
-    }));
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   const completionData = sessions
     .filter((s) => s.previousCompletionRate !== null && s.previousCompletionRate !== undefined)

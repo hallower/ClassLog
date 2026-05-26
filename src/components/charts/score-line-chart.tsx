@@ -12,20 +12,28 @@ import {
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
-import type { Session } from "@/types/models";
+import { getMockExamEntries, type Session } from "@/types/models";
+
+interface Point {
+  date: string;
+  label: string;
+  score: number;
+  scope: string;
+}
 
 export function ScoreLineChart({ sessions }: { sessions: Session[] }) {
-  const data = sessions
-    .filter(
-      (s) => s.mockExamScore !== null && s.mockExamScore !== undefined && s.mockExamScore > 0,
+  const data: Point[] = sessions
+    .flatMap((s) =>
+      getMockExamEntries(s)
+        .filter((e) => e.score !== null && e.score !== undefined && e.score > 0)
+        .map((e) => ({
+          date: s.sessionDate,
+          label: formatDate(s.sessionDate),
+          score: e.score!,
+          scope: e.scope,
+        })),
     )
-    .sort((a, b) => (a.sessionDate < b.sessionDate ? -1 : 1))
-    .map((s) => ({
-      date: s.sessionDate,
-      label: formatDate(s.sessionDate),
-      score: s.mockExamScore!,
-      scope: s.mockExamScope ?? "",
-    }));
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   if (data.length === 0) {
     return (
