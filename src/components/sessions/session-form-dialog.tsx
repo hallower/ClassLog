@@ -289,11 +289,11 @@ export function SessionFormDialog({
             <FormField label="기출 유형" className="md:col-span-2">
               <Input placeholder="예: 빈칸, 어법, 주제 등" {...form.register("pastQuestionType")} />
             </FormField>
-            <FormField label="기타 비고" className="md:col-span-2">
-              <Textarea rows={2} {...form.register("notes")} placeholder="수업 중 메모, 학생 컨디션 등" />
-            </FormField>
             <FormField label="다음 수업 과제" className="md:col-span-2">
               <Textarea rows={2} {...form.register("nextAssignment")} placeholder="다음 시간에 학습할 진도·과제" />
+            </FormField>
+            <FormField label="기타 비고" className="md:col-span-2">
+              <Textarea rows={2} {...form.register("notes")} placeholder="수업 중 메모, 학생 컨디션 등" />
             </FormField>
           </div>
 

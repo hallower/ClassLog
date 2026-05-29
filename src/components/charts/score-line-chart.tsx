@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
+  LabelList,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -60,9 +61,9 @@ export function ScoreLineChart({ sessions }: { sessions: Session[] }) {
           <Stat label="평균" value={Math.round(avg * 10) / 10} />
           <Stat label="최저" value={min} />
         </div>
-        <div className="h-64">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 28, right: 16, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0 0)" />
               <XAxis
                 dataKey="label"
@@ -96,12 +97,49 @@ export function ScoreLineChart({ sessions }: { sessions: Session[] }) {
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
-              />
+              >
+                <LabelList dataKey="score" content={<PointLabel data={data} />} />
+              </Line>
             </LineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface PointLabelProps {
+  x?: number;
+  y?: number;
+  index?: number;
+  data: Point[];
+}
+
+/* 각 점 위에 점수(굵게) + 날짜(MM/DD)를 함께 표시 */
+function PointLabel({ x, y, index, data }: PointLabelProps) {
+  if (x === undefined || y === undefined || index === undefined) return null;
+  const point = data[index];
+  if (!point) return null;
+  const shortDate = point.date.slice(5).replace("-", "/"); /* MM/DD */
+  return (
+    <g>
+      <text
+        x={x}
+        y={y - 14}
+        textAnchor="middle"
+        style={{ fontSize: 12, fontWeight: 700, fill: "oklch(0.4 0.18 250)" }}
+      >
+        {point.score}점
+      </text>
+      <text
+        x={x}
+        y={y - 26}
+        textAnchor="middle"
+        style={{ fontSize: 10, fill: "oklch(0.55 0 0)" }}
+      >
+        {shortDate}
+      </text>
+    </g>
   );
 }
 
